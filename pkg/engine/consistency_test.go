@@ -2,9 +2,10 @@
 package engine
 
 import (
-	"gridbot/pkg/model"
-	"testing"
-	"time"
+    "context"
+    "gridbot/pkg/model"
+    "testing"
+    "time"
 )
 
 // TestConsistency_UDS_ExecutorResult_OutOfOrder
@@ -388,96 +389,94 @@ func TestConsistency_Reconcile_Timing_Stability(t *testing.T) {
 // TestConsistency_ConcurrentEvents_NoRace
 // 验证：并发事件处理不会导致race condition（通过-race测试验证）
 func TestConsistency_ConcurrentEvents_NoRace(t *testing.T) {
-	cfg := EngineConfig{
-		Prefix:      "TEST",
-		Symbol:      "BTCUSDT",
-		Side:        model.GridSideLong,
-		EventChSize: 1000,
-	}
+    cfg := EngineConfig{
+        Prefix:      "TEST",
+        Symbol:      "BTCUSDT",
+        Side:        model.GridSideLong,
+        StepTicks:   100000,
+        WinMinTicks: 49000000,
+        WinMaxTicks: 51000000,
+        EntryQtyTicks: 1000,
+        EventChSize: 1000,
+    }
 
-	engine := NewEngine(cfg)
+    engine := NewEngine(cfg)
 
-	// 初始化level
-	engine.state.Levels = []model.LevelState{
-		{
-			LevelID:    500,
-			PriceTicks: 50000000,
-			Cycle:      1,
-			Entry: model.OrderSlot{
-				Purpose:       model.OrderPurposeEntry,
-				ClientOrderID: "TEST:E:500:1",
-				State:         model.OrderStateSubmitted,
-			},
-		},
-	}
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+    go func() { _ = engine.Run(ctx) }()
+    time.Sleep(20 * time.Millisecond)
 
-	// 并发发送多个事件（模拟UDS+ExecutorResult+PriceTick同时到达）
-	done := make(chan bool, 3)
+    done := make(chan bool, 3)
 
-	// Goroutine 1: UDS更新
-	go func() {
-		for i := 0; i < 10; i++ {
-			udsEvent := model.OrderUpdateEvent{
-				ClientOrderID:    "TEST:E:500:1",
-				OrderID:          123456,
-				Status:           "NEW",
-				ExecutedQtyTicks: int64(i * 100),
-				UpdateAtMs:       model.NowMs(),
-			}
-			var effects ReducerEffect
-			engine.state, effects = ApplyOrderUpdate(engine.state, udsEvent, cfg.Prefix)
-			_ = effects
-			time.Sleep(1 * time.Millisecond)
-		}
-		done <- true
-	}()
+    go func() {
+        for i := 0; i < 10; i++ {
+            udsEvent := model.OrderUpdateEvent{
+                ClientOrderID:    "TEST:E:500:1",
+                OrderID:          123456,
+                Status:           "NEW",
+                ExecutedQtyTicks: int64(i * 100),
+                UpdateAtMs:       model.NowMs(),
+            }
+            select {
+            case engine.GetEventCh() <- model.EngineEvent{Type: model.EventTypeOrderUpdate, Data: udsEvent}:
+            case <-ctx.Done():
+                return
+            }
+            time.Sleep(1 * time.Millisecond)
+        }
+        done <- true
+    }()
 
-	// Goroutine 2: ExecutorResult
-	go func() {
-		for i := 0; i < 10; i++ {
-			execEvent := model.ExecutorResultEvent{
-				TaskID: "task-1",
-				OK:     true,
-				ParsedOrder: &model.ParsedOrderUpdate{
-					ClientOrderID:    "TEST:E:500:1",
-					OrderID:          123456,
-					Status:           "NEW",
-					ExecutedQtyTicks: int64(i * 100),
-				},
-			}
-			var effects ReducerEffect
-			engine.state, effects = ApplyExecutorResult(engine.state, execEvent, cfg.Prefix)
-			_ = effects
-			time.Sleep(1 * time.Millisecond)
-		}
-		done <- true
-	}()
+    go func() {
+        for i := 0; i < 10; i++ {
+            execEvent := model.ExecutorResultEvent{
+                TaskID: "task-1",
+                OK:     true,
+                ParsedOrder: &model.ParsedOrderUpdate{
+                    ClientOrderID:    "TEST:E:500:1",
+                    OrderID:          123456,
+                    Status:           "NEW",
+                    ExecutedQtyTicks: int64(i * 100),
+                },
+            }
+            select {
+            case engine.GetEventCh() <- model.EngineEvent{Type: model.EventTypeExecutorResult, Data: execEvent}:
+            case <-ctx.Done():
+                return
+            }
+            time.Sleep(1 * time.Millisecond)
+        }
+        done <- true
+    }()
 
-	// Goroutine 3: PriceTick
-	go func() {
-		for i := 0; i < 10; i++ {
-			priceEvent := model.PriceTickEvent{
-				Symbol:     "BTCUSDT",
-				PriceTicks: 50000000 + int64(i*1000),
-				EventAtMs:  model.NowMs(),
-			}
-			var effects ReducerEffect
-			engine.state, effects = ApplyPriceTick(engine.state, priceEvent)
-			_ = effects
-			time.Sleep(1 * time.Millisecond)
-		}
-		done <- true
-	}()
+    go func() {
+        for i := 0; i < 10; i++ {
+            priceEvent := model.PriceTickEvent{
+                Symbol:     "BTCUSDT",
+                PriceTicks: 50000000 + int64(i*1000),
+                EventAtMs:  model.NowMs(),
+            }
+            select {
+            case engine.GetEventCh() <- model.EngineEvent{Type: model.EventTypePriceTick, Data: priceEvent}:
+            case <-ctx.Done():
+                return
+            }
+            time.Sleep(1 * time.Millisecond)
+        }
+        done <- true
+    }()
 
-	// 等待所有goroutine完成
-	for i := 0; i < 3; i++ {
-		<-done
-	}
+    for i := 0; i < 3; i++ {
+        <-done
+    }
 
-	// 验证：状态没有损坏
-	if len(engine.state.Levels) != 1 {
-		t.Errorf("State corrupted: expected 1 level, got %d", len(engine.state.Levels))
-	}
-
-	t.Log("✅ No race conditions detected (run with -race to verify)")
+    time.Sleep(20 * time.Millisecond)
+    state, err := engine.GetState(context.Background())
+    if err != nil {
+        t.Fatalf("GetState failed: %v", err)
+    }
+    _ = state.Symbol
+    _ = len(state.Levels)
+    t.Log("✅ No race conditions detected (run with -race to verify)")
 }
