@@ -3,8 +3,8 @@
 package engine
 
 import (
-	"context"
-	"fmt"
+    "context"
+    "fmt"
 	"gridbot/pkg/executor"
 	"gridbot/pkg/model"
 	"gridbot/pkg/store"
@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 )
+
+var ErrEngineNotRunning = fmt.Errorf("engine not running")
 
 // Engine 网格交易引擎（单写者）
 // 职责：
@@ -329,11 +331,17 @@ func (e *Engine) GetEventCh() chan<- model.EngineEvent {
 // P0-RACE-02: 改为事件请求模式，避免读写竞态
 // 注意：返回的是副本，不能修改
 func (e *Engine) GetState(ctx context.Context) (model.GridStateSnapshot, error) {
-	// 验收红1: GetState必须可超时、可退出
-	replyCh := make(chan *model.GridStateSnapshot, 1) // buffer=1，避免阻塞engine loop
+    e.mu.RLock()
+    running := e.started
+    e.mu.RUnlock()
+    if !running {
+        return model.GridStateSnapshot{}, ErrEngineNotRunning
+    }
+    // 验收红1: GetState必须可超时、可退出
+    replyCh := make(chan *model.GridStateSnapshot, 1) // buffer=1，避免阻塞engine loop
 
-	// 发送状态请求事件到engine loop
-	select {
+    // 发送状态请求事件到engine loop
+    select {
 	case e.eventCh <- model.EngineEvent{
 		Type: model.EventTypeStateRequest,
 		Data: model.StateRequestEvent{

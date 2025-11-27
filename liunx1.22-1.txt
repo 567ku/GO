@@ -1,0 +1,412 @@
+Run echo "Running normal tests..."
+  echo "Running normal tests..."
+  go test -v -count=1 ./pkg/...
+  shell: /usr/bin/bash -e {0}
+  env:
+    GOTOOLCHAIN: local
+Running normal tests...
+=== RUN   TestEngine_Bootstrap_CrashRecovery
+    bootstrap_test.go:18: Phase 1: Initial run and save snapshot
+    bootstrap_test.go:76: Saved snapshot with 2 levels
+    bootstrap_test.go:85: Simulated crash (engine1 discarded)
+    bootstrap_test.go:88: Phase 2: Restart and recover from snapshot
+    bootstrap_test.go:138: Crash recovery successful: state consistent after restart
+--- PASS: TestEngine_Bootstrap_CrashRecovery (0.00s)
+=== RUN   TestEngine_Bootstrap_NoSnapshot
+--- PASS: TestEngine_Bootstrap_NoSnapshot (0.00s)
+=== RUN   TestEngine_Bootstrap_CorruptedSnapshot
+    bootstrap_test.go:197: Expected error received: load snapshot failed (will use fresh state): unmarshal snapshot: invalid character 't' looking for beginning of object key string
+--- PASS: TestEngine_Bootstrap_CorruptedSnapshot (0.00s)
+=== RUN   TestEngine_SaveSnapshot_Periodic
+--- PASS: TestEngine_SaveSnapshot_Periodic (0.00s)
+=== RUN   TestParseCLID_Entry
+--- PASS: TestParseCLID_Entry (0.00s)
+=== RUN   TestParseCLID_TP
+--- PASS: TestParseCLID_TP (0.00s)
+=== RUN   TestParseCLID_WrongPrefix
+--- PASS: TestParseCLID_WrongPrefix (0.00s)
+=== RUN   TestParseCLID_InvalidFormat
+--- PASS: TestParseCLID_InvalidFormat (0.00s)
+=== RUN   TestFindLevelByID
+--- PASS: TestFindLevelByID (0.00s)
+=== RUN   TestFindOrCreateLevel_Reducer
+--- PASS: TestFindOrCreateLevel_Reducer (0.00s)
+=== RUN   TestGetOrderSlot
+--- PASS: TestGetOrderSlot (0.00s)
+=== RUN   TestConsistency_UDS_ExecutorResult_OutOfOrder
+    consistency_test.go:45: Phase 1: ExecutorResult arrives first (from Trade WS response)
+    consistency_test.go:78: ExecutorResult applied: State=OPEN, OrderID=123456, LastSource=RESP
+    consistency_test.go:82: Phase 2: UDS update arrives later (from UDS WS)
+    consistency_test.go:111: UDS applied: State=OPEN, OrderID=123456, LastSource=UDS
+    consistency_test.go:116: Phase 3: Verify dual-confirmation convergence
+    consistency_test.go:124: ✅ Dual-confirmation successful: ExecutorResult + UDS converged to consistent state
+--- PASS: TestConsistency_UDS_ExecutorResult_OutOfOrder (0.00s)
+=== RUN   TestConsistency_UDS_ExecutorResult_ReverseOrder
+    consistency_test.go:160: Phase 1: UDS arrives first
+    consistency_test.go:187: Phase 2: ExecutorResult arrives later
+    consistency_test.go:213: ✅ Reverse order also converges to consistent state
+--- PASS: TestConsistency_UDS_ExecutorResult_ReverseOrder (0.00s)
+=== RUN   TestConsistency_TerminalState_Idempotent
+    consistency_test.go:274: ✅ Terminal state updates are idempotent
+--- PASS: TestConsistency_TerminalState_Idempotent (0.00s)
+=== RUN   TestConsistency_Reconcile_Timing_Stability
+    consistency_test.go:308: Phase 1: WS DISCONNECTED → FREEZE
+    consistency_test.go:325: Mode after DISCONNECTED: FREEZE
+    consistency_test.go:328: Phase 2: WS RECONNECTED → RECONCILING
+    consistency_test.go:344: Mode after RECONNECTED: RECONCILING
+    consistency_test.go:347: Phase 3: Apply empty snapshot (reconcile complete)
+    consistency_test.go:364: Mode after reconcile: RUNNING
+    consistency_test.go:367: Phase 4: Verify timing stability (no stuck in intermediate states)
+    consistency_test.go:385: ✅ Reconcile timing stability verified: state transitions are deterministic and repeatable
+--- PASS: TestConsistency_Reconcile_Timing_Stability (0.00s)
+=== RUN   TestConsistency_ConcurrentEvents_NoRace
+    consistency_test.go:482: ✅ No race conditions detected (run with -race to verify)
+--- PASS: TestConsistency_ConcurrentEvents_NoRace (0.01s)
+=== RUN   TestEngine_EventLoop
+--- PASS: TestEngine_EventLoop (0.01s)
+=== RUN   TestEngine_FreezeOnWSDisconnect
+--- PASS: TestEngine_FreezeOnWSDisconnect (0.01s)
+=== RUN   TestEngine_ReconnectToReconciling
+--- PASS: TestEngine_ReconnectToReconciling (0.06s)
+=== RUN   TestEngine_CanSubmitWriteTask
+--- PASS: TestEngine_CanSubmitWriteTask (0.00s)
+=== RUN   TestEngine_OrderUpdateMapping
+--- PASS: TestEngine_OrderUpdateMapping (0.01s)
+=== RUN   TestEngine_Stop_Idempotent
+    engine_test.go:338: 验收点1: 多次调用Stop()...
+    engine_test.go:342: ✅ 验收点1通过：10次Stop()不panic
+    engine_test.go:345: 验收点2: 等待Run退出...
+    engine_test.go:356: ✅ 验收点2通过：Run在20.228µs内退出
+    engine_test.go:362: 验收点3: 检查goroutine泄漏...
+    engine_test.go:371: ✅ 验收点3通过：无goroutine泄漏 (baseline=2, current=2, leaked=0)
+--- PASS: TestEngine_Stop_Idempotent (0.15s)
+=== RUN   TestEngine_Stop_Concurrent
+    engine_test.go:405: 并发调用Stop()...
+    engine_test.go:414: Goroutine 1: Stop()完成
+    engine_test.go:414: Goroutine 19: Stop()完成
+    engine_test.go:414: Goroutine 10: Stop()完成
+    engine_test.go:414: Goroutine 18: Stop()完成
+    engine_test.go:414: Goroutine 11: Stop()完成
+    engine_test.go:414: Goroutine 12: Stop()完成
+    engine_test.go:414: Goroutine 13: Stop()完成
+    engine_test.go:414: Goroutine 14: Stop()完成
+    engine_test.go:414: Goroutine 15: Stop()完成
+    engine_test.go:414: Goroutine 16: Stop()完成
+    engine_test.go:414: Goroutine 17: Stop()完成
+    engine_test.go:414: Goroutine 2: Stop()完成
+    engine_test.go:414: Goroutine 3: Stop()完成
+    engine_test.go:414: Goroutine 4: Stop()完成
+    engine_test.go:414: Goroutine 5: Stop()完成
+    engine_test.go:414: Goroutine 6: Stop()完成
+    engine_test.go:414: Goroutine 7: Stop()完成
+    engine_test.go:414: Goroutine 8: Stop()完成
+    engine_test.go:414: Goroutine 9: Stop()完成
+    engine_test.go:414: Goroutine 0: Stop()完成
+    engine_test.go:419: ✅ 并发Stop()测试通过：20个goroutine同时Stop不panic
+--- PASS: TestEngine_Stop_Concurrent (0.05s)
+=== RUN   TestEngine_Stop_Then_Restart
+    engine_test.go:441: 第1次Run...
+    engine_test.go:454: ✅ 第1次Run退出
+    engine_test.go:457: 第2次Run...
+    engine_test.go:470: ✅ 第2次Run退出，Stop后再次Run功能正常
+--- PASS: TestEngine_Stop_Then_Restart (0.04s)
+=== RUN   TestGetState_DeepCopy_ModifyDoesNotAffectInternal
+panic: test timed out after 10m0s
+running tests:
+	TestGetState_DeepCopy_ModifyDoesNotAffectInternal (10m0s)
+
+goroutine 67 [running]:
+testing.(*M).startAlarm.func1()
+	/opt/hostedtoolcache/go/1.22.0/x64/src/testing/testing.go:2366 +0x385
+created by time.goFunc
+	/opt/hostedtoolcache/go/1.22.0/x64/src/time/sleep.go:177 +0x2d
+
+goroutine 1 [chan receive]:
+testing.(*T).Run(0xc0001444e0, {0x658e52?, 0x0?}, 0x676ab0)
+	/opt/hostedtoolcache/go/1.22.0/x64/src/testing/testing.go:1750 +0x3ab
+testing.runTests.func1(0xc0001444e0)
+	/opt/hostedtoolcache/go/1.22.0/x64/src/testing/testing.go:2161 +0x37
+testing.tRunner(0xc0001444e0, 0xc000179c70)
+	/opt/hostedtoolcache/go/1.22.0/x64/src/testing/testing.go:1689 +0xfb
+testing.runTests(0xc00011e090, {0x820e80, 0x4f, 0x4f}, {0x1?, 0x4d484e?, 0x824ac0?})
+	/opt/hostedtoolcache/go/1.22.0/x64/src/testing/testing.go:2159 +0x445
+testing.(*M).Run(0xc00011a6e0)
+	/opt/hostedtoolcache/go/1.22.0/x64/src/testing/testing.go:2027 +0x68b
+main.main()
+	_testmain.go:203 +0x16c
+
+goroutine 66 [select]:
+gridbot/pkg/engine.(*Engine).GetState(_, {_, _})
+	/home/runner/work/GO/GO/pkg/engine/engine.go:351 +0x274
+gridbot/pkg/engine.TestGetState_DeepCopy_ModifyDoesNotAffectInternal(0xc00020e680)
+	/home/runner/work/GO/GO/pkg/engine/getstate_test.go:45 +0x1e6
+testing.tRunner(0xc00020e680, 0x676ab0)
+	/opt/hostedtoolcache/go/1.22.0/x64/src/testing/testing.go:1689 +0xfb
+created by testing.(*T).Run in goroutine 1
+	/opt/hostedtoolcache/go/1.22.0/x64/src/testing/testing.go:1742 +0x390
+FAIL	gridbot/pkg/engine	600.041s
+=== RUN   TestBuildRequest_ReduceOnlyBool
+--- PASS: TestBuildRequest_ReduceOnlyBool (0.00s)
+=== RUN   TestBuildRequest_PrecisionInjection
+--- PASS: TestBuildRequest_PrecisionInjection (0.00s)
+=== RUN   TestExecutorResult_NoDrop_WithBackpressure
+    ws_executor_test.go:217: ✅ P0-1 验收通过：3000 ExecutorResults 全部送达，背压次数=2
+--- PASS: TestExecutorResult_NoDrop_WithBackpressure (0.06s)
+=== RUN   TestExecutorResult_ShutdownDrop
+{"level":"WARN","component":"executor_outbox","event":"shutdown_drop","taskID":"test_shutdown","clid":"TEST_SHUTDOWN","taskType":"PLACE_ENTRY","timestamp":"2025-11-27T09:29:26Z"}
+    ws_executor_test.go:240: ✅ Shutdown drop test passed (no panic)
+--- PASS: TestExecutorResult_ShutdownDrop (0.00s)
+=== RUN   TestOutboxSize_SmallBuffer_Backpressure
+    ws_executor_test.go:298: ✅ OutboxSize=32: 100 results, backpressure=65, maxDepth=32, currentDepth=32
+--- PASS: TestOutboxSize_SmallBuffer_Backpressure (0.52s)
+=== RUN   TestOutboxSize_MediumBuffer_Backpressure
+    ws_executor_test.go:343: ✅ OutboxSize=64: 100 results, backpressure=33, maxDepth=64
+--- PASS: TestOutboxSize_MediumBuffer_Backpressure (0.52s)
+=== RUN   TestWSExecutor_Stop_Idempotent
+    ws_executor_test.go:379: ✅ 验收点1通过：多次 Stop() 不 panic
+    ws_executor_test.go:396: ✅ 验收点2/3通过：pump 正确退出，无 goroutine 泄漏（baseline=6, current=5, leaked=-1）
+--- PASS: TestWSExecutor_Stop_Idempotent (0.20s)
+=== RUN   TestWSExecutor_Stop_PumpExitVerify
+    ws_executor_test.go:432: ✅ Stop() 在 14.607µs 内返回，pump 正确退出
+--- PASS: TestWSExecutor_Stop_PumpExitVerify (0.00s)
+PASS
+ok  	gridbot/pkg/executor	1.310s
+=== RUN   TestGenerateTaskID_Uniqueness
+    id_test.go:45: ✅ Generated 100000 unique TaskIDs (no collisions)
+--- PASS: TestGenerateTaskID_Uniqueness (0.09s)
+=== RUN   TestGenerateReconcileTaskID_Uniqueness
+    id_test.go:89: ✅ Generated 100000 unique ReconcileTaskIDs (no collisions)
+--- PASS: TestGenerateReconcileTaskID_Uniqueness (0.10s)
+=== RUN   TestTaskID_Format
+    id_test.go:106: ✅ TaskID format validated: task_1764235766370_88e4da2d0e36bc79_0d41
+--- PASS: TestTaskID_Format (0.00s)
+=== RUN   TestFormatPriceDecimal_Pure
+=== RUN   TestFormatPriceDecimal_Pure/价格100.5精度1
+=== RUN   TestFormatPriceDecimal_Pure/价格100.50精度2
+=== RUN   TestFormatPriceDecimal_Pure/价格0.001精度3
+=== RUN   TestFormatPriceDecimal_Pure/价格99999精度0
+=== RUN   TestFormatPriceDecimal_Pure/负数-10.5精度1
+=== RUN   TestFormatPriceDecimal_Pure/整数100精度2
+--- PASS: TestFormatPriceDecimal_Pure (0.00s)
+    --- PASS: TestFormatPriceDecimal_Pure/价格100.5精度1 (0.00s)
+    --- PASS: TestFormatPriceDecimal_Pure/价格100.50精度2 (0.00s)
+    --- PASS: TestFormatPriceDecimal_Pure/价格0.001精度3 (0.00s)
+    --- PASS: TestFormatPriceDecimal_Pure/价格99999精度0 (0.00s)
+    --- PASS: TestFormatPriceDecimal_Pure/负数-10.5精度1 (0.00s)
+    --- PASS: TestFormatPriceDecimal_Pure/整数100精度2 (0.00s)
+=== RUN   TestFormatQtyDecimal_Pure
+=== RUN   TestFormatQtyDecimal_Pure/数量0.001精度3
+=== RUN   TestFormatQtyDecimal_Pure/数量1.5精度1
+=== RUN   TestFormatQtyDecimal_Pure/数量100精度0
+=== RUN   TestFormatQtyDecimal_Pure/数量0.0001精度4
+--- PASS: TestFormatQtyDecimal_Pure (0.00s)
+    --- PASS: TestFormatQtyDecimal_Pure/数量0.001精度3 (0.00s)
+    --- PASS: TestFormatQtyDecimal_Pure/数量1.5精度1 (0.00s)
+    --- PASS: TestFormatQtyDecimal_Pure/数量100精度0 (0.00s)
+    --- PASS: TestFormatQtyDecimal_Pure/数量0.0001精度4 (0.00s)
+=== RUN   TestParsePriceDecimal_Pure
+=== RUN   TestParsePriceDecimal_Pure/解析100.5精度1
+=== RUN   TestParsePriceDecimal_Pure/解析100.50精度2
+=== RUN   TestParsePriceDecimal_Pure/解析0.001精度3
+=== RUN   TestParsePriceDecimal_Pure/解析整数100精度2
+=== RUN   TestParsePriceDecimal_Pure/解析整数100精度1
+=== RUN   TestParsePriceDecimal_Pure/解析负数-10.5精度1
+=== RUN   TestParsePriceDecimal_Pure/解析小数部分超长（截断）
+=== RUN   TestParsePriceDecimal_Pure/解析非法字符串
+=== RUN   TestParsePriceDecimal_Pure/解析多个小数点
+--- PASS: TestParsePriceDecimal_Pure (0.00s)
+    --- PASS: TestParsePriceDecimal_Pure/解析100.5精度1 (0.00s)
+    --- PASS: TestParsePriceDecimal_Pure/解析100.50精度2 (0.00s)
+    --- PASS: TestParsePriceDecimal_Pure/解析0.001精度3 (0.00s)
+    --- PASS: TestParsePriceDecimal_Pure/解析整数100精度2 (0.00s)
+    --- PASS: TestParsePriceDecimal_Pure/解析整数100精度1 (0.00s)
+    --- PASS: TestParsePriceDecimal_Pure/解析负数-10.5精度1 (0.00s)
+    --- PASS: TestParsePriceDecimal_Pure/解析小数部分超长（截断） (0.00s)
+    --- PASS: TestParsePriceDecimal_Pure/解析非法字符串 (0.00s)
+    --- PASS: TestParsePriceDecimal_Pure/解析多个小数点 (0.00s)
+=== RUN   TestDecimal_RoundTrip
+--- PASS: TestDecimal_RoundTrip (0.00s)
+=== RUN   TestRoundTicks
+=== RUN   TestRoundTicks/向下取整-整除
+=== RUN   TestRoundTicks/向下取整-不整除
+=== RUN   TestRoundTicks/向上取整-整除
+=== RUN   TestRoundTicks/向上取整-不整除
+=== RUN   TestRoundTicks/四舍五入-入
+=== RUN   TestRoundTicks/四舍五入-舍
+=== RUN   TestRoundTicks/负数向下取整
+--- PASS: TestRoundTicks (0.00s)
+    --- PASS: TestRoundTicks/向下取整-整除 (0.00s)
+    --- PASS: TestRoundTicks/向下取整-不整除 (0.00s)
+    --- PASS: TestRoundTicks/向上取整-整除 (0.00s)
+    --- PASS: TestRoundTicks/向上取整-不整除 (0.00s)
+    --- PASS: TestRoundTicks/四舍五入-入 (0.00s)
+    --- PASS: TestRoundTicks/四舍五入-舍 (0.00s)
+    --- PASS: TestRoundTicks/负数向下取整 (0.00s)
+=== RUN   TestCalculateQtyFromQuote_Pure
+=== RUN   TestCalculateQtyFromQuote_Pure/100U买入@100.0（quotePrecision=2）
+=== RUN   TestCalculateQtyFromQuote_Pure/50U买入@100.5（quotePrecision=2）
+=== RUN   TestCalculateQtyFromQuote_Pure/价格为0（错误）
+=== RUN   TestCalculateQtyFromQuote_Pure/投入金额为0（错误）
+=== RUN   TestCalculateQtyFromQuote_Pure/100U买入@50.5按stepSize=10取整（quotePrecision=2）
+--- PASS: TestCalculateQtyFromQuote_Pure (0.00s)
+    --- PASS: TestCalculateQtyFromQuote_Pure/100U买入@100.0（quotePrecision=2） (0.00s)
+    --- PASS: TestCalculateQtyFromQuote_Pure/50U买入@100.5（quotePrecision=2） (0.00s)
+    --- PASS: TestCalculateQtyFromQuote_Pure/价格为0（错误） (0.00s)
+    --- PASS: TestCalculateQtyFromQuote_Pure/投入金额为0（错误） (0.00s)
+    --- PASS: TestCalculateQtyFromQuote_Pure/100U买入@50.5按stepSize=10取整（quotePrecision=2） (0.00s)
+=== RUN   TestValidateMinQty
+=== RUN   TestValidateMinQty/满足最小值
+=== RUN   TestValidateMinQty/等于最小值
+=== RUN   TestValidateMinQty/不足最小值
+--- PASS: TestValidateMinQty (0.00s)
+    --- PASS: TestValidateMinQty/满足最小值 (0.00s)
+    --- PASS: TestValidateMinQty/等于最小值 (0.00s)
+    --- PASS: TestValidateMinQty/不足最小值 (0.00s)
+=== RUN   TestValidateMinNotional
+=== RUN   TestValidateMinNotional/满足名义值-100.0*1.0=100.00
+=== RUN   TestValidateMinNotional/不足名义值-10.0*1.0=10.00<20.00
+=== RUN   TestValidateMinNotional/刚好等于最小值-5.00
+=== RUN   TestValidateMinNotional/略小于最小值-4.99
+=== RUN   TestValidateMinNotional/高精度-0.001*0.001=0.000001满足0.000001
+--- PASS: TestValidateMinNotional (0.00s)
+    --- PASS: TestValidateMinNotional/满足名义值-100.0*1.0=100.00 (0.00s)
+    --- PASS: TestValidateMinNotional/不足名义值-10.0*1.0=10.00<20.00 (0.00s)
+    --- PASS: TestValidateMinNotional/刚好等于最小值-5.00 (0.00s)
+    --- PASS: TestValidateMinNotional/略小于最小值-4.99 (0.00s)
+    --- PASS: TestValidateMinNotional/高精度-0.001*0.001=0.000001满足0.000001 (0.00s)
+=== RUN   TestValidateClientOrderID
+=== RUN   TestValidateClientOrderID/合法-基本格式
+=== RUN   TestValidateClientOrderID/合法-包含所有允许字符
+=== RUN   TestValidateClientOrderID/合法-最长36字符
+=== RUN   TestValidateClientOrderID/非法-超过36字符
+=== RUN   TestValidateClientOrderID/非法-包含非法字符@
+=== RUN   TestValidateClientOrderID/非法-包含非法字符#
+=== RUN   TestValidateClientOrderID/非法-空字符串
+=== RUN   TestValidateClientOrderID/合法-单字符
+--- PASS: TestValidateClientOrderID (0.00s)
+    --- PASS: TestValidateClientOrderID/合法-基本格式 (0.00s)
+    --- PASS: TestValidateClientOrderID/合法-包含所有允许字符 (0.00s)
+    --- PASS: TestValidateClientOrderID/合法-最长36字符 (0.00s)
+    --- PASS: TestValidateClientOrderID/非法-超过36字符 (0.00s)
+    --- PASS: TestValidateClientOrderID/非法-包含非法字符@ (0.00s)
+    --- PASS: TestValidateClientOrderID/非法-包含非法字符# (0.00s)
+    --- PASS: TestValidateClientOrderID/非法-空字符串 (0.00s)
+    --- PASS: TestValidateClientOrderID/合法-单字符 (0.00s)
+=== RUN   TestValidateGridConfig
+=== RUN   TestValidateGridConfig/合法配置
+=== RUN   TestValidateGridConfig/非法-step<=0
+=== RUN   TestValidateGridConfig/非法-winMin>=winMax
+=== RUN   TestValidateGridConfig/非法-winMin未对齐
+=== RUN   TestValidateGridConfig/非法-winMax未对齐
+=== RUN   TestValidateGridConfig/非法-(winMax-winMin)不是step的整数倍
+=== RUN   TestValidateGridConfig/非法-tpKeepOutsideLevels<0
+--- PASS: TestValidateGridConfig (0.00s)
+    --- PASS: TestValidateGridConfig/合法配置 (0.00s)
+    --- PASS: TestValidateGridConfig/非法-step<=0 (0.00s)
+    --- PASS: TestValidateGridConfig/非法-winMin>=winMax (0.00s)
+    --- PASS: TestValidateGridConfig/非法-winMin未对齐 (0.00s)
+    --- PASS: TestValidateGridConfig/非法-winMax未对齐 (0.00s)
+    --- PASS: TestValidateGridConfig/非法-(winMax-winMin)不是step的整数倍 (0.00s)
+    --- PASS: TestValidateGridConfig/非法-tpKeepOutsideLevels<0 (0.00s)
+=== RUN   TestBuildCLID
+=== RUN   TestBuildCLID/合法-正常CLID
+=== RUN   TestBuildCLID/合法-最大长度CLID
+=== RUN   TestBuildCLID/非法-prefix过长导致超36字符
+--- PASS: TestBuildCLID (0.00s)
+    --- PASS: TestBuildCLID/合法-正常CLID (0.00s)
+    --- PASS: TestBuildCLID/合法-最大长度CLID (0.00s)
+    --- PASS: TestBuildCLID/非法-prefix过长导致超36字符 (0.00s)
+=== RUN   TestCeilDiv
+=== RUN   TestCeilDiv/整除
+=== RUN   TestCeilDiv/向上取整-1
+=== RUN   TestCeilDiv/向上取整-2
+=== RUN   TestCeilDiv/除数为0
+=== RUN   TestCeilDiv/被除数为0
+--- PASS: TestCeilDiv (0.00s)
+    --- PASS: TestCeilDiv/整除 (0.00s)
+    --- PASS: TestCeilDiv/向上取整-1 (0.00s)
+    --- PASS: TestCeilDiv/向上取整-2 (0.00s)
+    --- PASS: TestCeilDiv/除数为0 (0.00s)
+    --- PASS: TestCeilDiv/被除数为0 (0.00s)
+=== RUN   TestOrderState_IsTerminal
+=== RUN   TestOrderState_IsTerminal/NONE
+=== RUN   TestOrderState_IsTerminal/SUBMITTED
+=== RUN   TestOrderState_IsTerminal/OPEN
+=== RUN   TestOrderState_IsTerminal/PARTIAL
+=== RUN   TestOrderState_IsTerminal/FILLED
+=== RUN   TestOrderState_IsTerminal/CANCELED
+=== RUN   TestOrderState_IsTerminal/REJECTED
+=== RUN   TestOrderState_IsTerminal/EXPIRED
+--- PASS: TestOrderState_IsTerminal (0.00s)
+    --- PASS: TestOrderState_IsTerminal/NONE (0.00s)
+    --- PASS: TestOrderState_IsTerminal/SUBMITTED (0.00s)
+    --- PASS: TestOrderState_IsTerminal/OPEN (0.00s)
+    --- PASS: TestOrderState_IsTerminal/PARTIAL (0.00s)
+    --- PASS: TestOrderState_IsTerminal/FILLED (0.00s)
+    --- PASS: TestOrderState_IsTerminal/CANCELED (0.00s)
+    --- PASS: TestOrderState_IsTerminal/REJECTED (0.00s)
+    --- PASS: TestOrderState_IsTerminal/EXPIRED (0.00s)
+=== RUN   TestTradeUpdateEvent_RealizedPnl
+--- PASS: TestTradeUpdateEvent_RealizedPnl (0.00s)
+=== RUN   TestExecutorResultEvent_ReqID
+--- PASS: TestExecutorResultEvent_ReqID (0.00s)
+PASS
+ok  	gridbot/pkg/model	0.198s
+=== RUN   TestSnapshotStore_SaveAndLoad
+--- PASS: TestSnapshotStore_SaveAndLoad (0.00s)
+=== RUN   TestSnapshotStore_AtomicWrite
+--- PASS: TestSnapshotStore_AtomicWrite (0.00s)
+=== RUN   TestSnapshotStore_ChecksumVerification
+--- PASS: TestSnapshotStore_ChecksumVerification (0.00s)
+=== RUN   TestSnapshotStore_NotFound
+--- PASS: TestSnapshotStore_NotFound (0.00s)
+=== RUN   TestSnapshotStore_Delete
+--- PASS: TestSnapshotStore_Delete (0.00s)
+=== RUN   TestSnapshotStore_ConcurrentSave
+--- PASS: TestSnapshotStore_ConcurrentSave (0.00s)
+PASS
+ok  	gridbot/pkg/store	0.009s
+=== RUN   TestMarketClient_PrecisionInjection_Market
+--- PASS: TestMarketClient_PrecisionInjection_Market (0.00s)
+=== RUN   TestUDSClient_PrecisionInjection_UDS
+--- PASS: TestUDSClient_PrecisionInjection_UDS (0.00s)
+=== RUN   TestManager_PrecisionValidation
+=== RUN   TestManager_PrecisionValidation/MarketWS缺失pricePrecision
+=== RUN   TestManager_PrecisionValidation/UDSWS缺失pricePrecision
+=== RUN   TestManager_PrecisionValidation/UDSWS缺失qtyPrecision
+=== RUN   TestManager_PrecisionValidation/UDSWS缺失quotePrecision
+--- PASS: TestManager_PrecisionValidation (0.00s)
+    --- PASS: TestManager_PrecisionValidation/MarketWS缺失pricePrecision (0.00s)
+    --- PASS: TestManager_PrecisionValidation/UDSWS缺失pricePrecision (0.00s)
+    --- PASS: TestManager_PrecisionValidation/UDSWS缺失qtyPrecision (0.00s)
+    --- PASS: TestManager_PrecisionValidation/UDSWS缺失quotePrecision (0.00s)
+=== RUN   TestPrecision_RealWorldScenario
+--- PASS: TestPrecision_RealWorldScenario (0.00s)
+=== RUN   TestManagerConfig_JSONSerialization
+--- PASS: TestManagerConfig_JSONSerialization (0.00s)
+=== RUN   TestNewWSStateEvent_ReasonField
+=== RUN   TestNewWSStateEvent_ReasonField/CONNECTED_with_fixed_reason
+=== RUN   TestNewWSStateEvent_ReasonField/DISCONNECTED_with_error_reason
+=== RUN   TestNewWSStateEvent_ReasonField/RECONNECTED_with_fixed_reason
+=== RUN   TestNewWSStateEvent_ReasonField/DISCONNECTED_with_detailed_reason
+--- PASS: TestNewWSStateEvent_ReasonField (0.00s)
+    --- PASS: TestNewWSStateEvent_ReasonField/CONNECTED_with_fixed_reason (0.00s)
+    --- PASS: TestNewWSStateEvent_ReasonField/DISCONNECTED_with_error_reason (0.00s)
+    --- PASS: TestNewWSStateEvent_ReasonField/RECONNECTED_with_fixed_reason (0.00s)
+    --- PASS: TestNewWSStateEvent_ReasonField/DISCONNECTED_with_detailed_reason (0.00s)
+=== RUN   TestNewWSStateEvent_EmptyReason
+--- PASS: TestNewWSStateEvent_EmptyReason (0.00s)
+=== RUN   TestCalculateBackoffWithJitter
+=== RUN   TestCalculateBackoffWithJitter/attempt_1
+=== RUN   TestCalculateBackoffWithJitter/attempt_2
+=== RUN   TestCalculateBackoffWithJitter/attempt_7_(should_hit_max)
+--- PASS: TestCalculateBackoffWithJitter (0.00s)
+    --- PASS: TestCalculateBackoffWithJitter/attempt_1 (0.00s)
+    --- PASS: TestCalculateBackoffWithJitter/attempt_2 (0.00s)
+    --- PASS: TestCalculateBackoffWithJitter/attempt_7_(should_hit_max) (0.00s)
+=== RUN   TestCalculateBackoffWithJitter_ZeroAttempt
+--- PASS: TestCalculateBackoffWithJitter_ZeroAttempt (0.00s)
+PASS
+ok  	gridbot/pkg/ws	0.004s
+FAIL
+Error: Process completed with exit code 1.
