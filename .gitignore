@@ -1,0 +1,29 @@
+# 密钥文件（禁止提交）
+key.txt
+*.key
+*.secret
+
+# 运行时数据
+data/
+*.json
+*.log
+
+# Go 编译产物
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

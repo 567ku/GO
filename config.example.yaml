@@ -1,0 +1,67 @@
+# 币安网格机器人配置示例 v1.3（阶段1.1修订版）
+
+exchange:
+  name: binance_um
+  symbol: BTCUSDT
+  api_mode: websocket
+  recv_window_ms: 5000
+  ws_trade_url: wss://ws-fapi.binance.com/ws-fapi/v1
+  ws_market_url: wss://fstream.binance.com/ws
+  uds_url: wss://fstream.binance.com/ws
+  listen_key_keepalive_sec: 1500    # 25分钟
+  session_max_sec: 86000            # 24小时连接保护
+  ping_pong_required: true
+
+grid:
+  prefix: "GRID_A1"
+  side: "LONG"
+  step_ticks: 1000                  # 步长100.0（pricePrecision=1）
+  win_min_ticks: 1000000            # 窗口下沿100000.0（必须对齐）
+  win_max_ticks: 1090000            # 窗口上沿109000.0（必须对齐）
+  tp_keep_outside_levels: 5         # TP扩展保留5格
+  time_in_force: "GTC"
+  allow_market_fill: true
+  tick_coalesce: true
+
+qty:
+  mode: "BASE"                      # BASE=按币数量, QUOTE=按U成本
+  base_qty_ticks: 1                 # 0.001 BTC（qtyPrecision=3）
+  quote_usd_ticks: 10000            # 100.00 U（quotePrecision=2，新增）
+  price_precision: 1                # 价格精度（0.1）
+  qty_precision: 3                  # 数量精度（0.001）
+  quote_precision: 2                # QUOTE金额精度（0.01 U，新增，固定为2）
+  min_qty_ticks: 1                  # 最小数量0.001
+  min_notional_ticks: 500           # 最小名义值5.00（quotePrecision=2）
+  round_mode: "DOWN"                # 取整策略
+
+compound:
+  enabled: true
+  threshold_usd_ticks: 10000        # 触发阈值100.00 U（quotePrecision=2）
+  increment_base_qty_ticks: 1       # 每次增加0.001（qtyPrecision=3）
+  max_base_qty_ticks: 10            # 最大0.010
+  requote_open_entries: false
+
+runtime:
+  lease_place_ms: 3000
+  lease_modify_ms: 3000
+  lease_cancel_ms: 2000
+  max_attempt: 8
+  backoff_profile: "exp_200ms_5s"
+  reconcile_on_start: true
+  reconcile_on_ws_reconnect: true
+  freeze_on_ws_disconnect: true
+  reconcile_time_window_sec: 3600
+  persist: true
+  snapshot_path: "data/grid_state.json"
+  wal_path: "data/grid_wal.log"
+  bootstrap_batch_size: 100         # 启动批量大小
+  bootstrap_batch_cooldown_sec: 20  # 启动批量间隔（可配置）
+  bootstrap_apply_on_start: true
+  bootstrap_apply_on_reconcile: true
+  query_delay_ms: 250
+  max_query_attempt: 3
+  query_backoff_ms: [250, 750, 1500]
+  # WS ping/pong配置（不写死，全部可配置）
+  ws_ping_interval_sec: 10          # WS ping间隔（默认10秒，Binance要求3分钟ping）
+  ws_pong_timeout_sec: 180          # WS pong超时（默认180秒，Binance要求10分钟内pong）
+  ws_idle_timeout_sec: 600          # WS空闲超时（默认600秒）
