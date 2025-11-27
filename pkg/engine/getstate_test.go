@@ -3,10 +3,10 @@
 package engine
 
 import (
-    "context"
-    "gridbot/pkg/model"
-    "testing"
-    "time"
+	"context"
+	"gridbot/pkg/model"
+	"testing"
+	"time"
 )
 
 // TestGetState_DeepCopy_ModifyDoesNotAffectInternal 验证深拷贝防止误写
@@ -21,7 +21,7 @@ func TestGetState_DeepCopy_ModifyDoesNotAffectInternal(t *testing.T) {
 		EntryQtyTicks: 1000,
 		EventChSize:   100,
 	}
-    engine := NewEngine(cfg)
+	engine := NewEngine(cfg)
 
 	// 初始化一些状态
 	engine.state.Levels = []model.LevelState{
@@ -42,13 +42,13 @@ func TestGetState_DeepCopy_ModifyDoesNotAffectInternal(t *testing.T) {
 	}
 	engine.state.Market.LastPriceTicks = 50000000
 
-    ctx, cancel := context.WithCancel(context.Background())
-    defer cancel()
-    go func() { _ = engine.Run(ctx) }()
-    time.Sleep(50 * time.Millisecond)
-    getCtx, getCancel := context.WithTimeout(ctx, 500*time.Millisecond)
-    stateCopy, err := engine.GetState(getCtx)
-    getCancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() { _ = engine.Run(ctx) }()
+	time.Sleep(50 * time.Millisecond)
+	getCtx, getCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	stateCopy, err := engine.GetState(getCtx)
+	getCancel()
 	if err != nil {
 		t.Fatalf("GetState failed: %v", err)
 	}
@@ -67,9 +67,9 @@ func TestGetState_DeepCopy_ModifyDoesNotAffectInternal(t *testing.T) {
 	stateCopy.CLIDIndex["TEST:E:999:1"] = 77777
 	delete(stateCopy.CLIDIndex, "TEST:E:500:1")
 
-    engine.Stop()
-    time.Sleep(20 * time.Millisecond)
-    // 验证: Engine内部状态未被修改
+	engine.Stop()
+	time.Sleep(20 * time.Millisecond)
+	// 验证: Engine内部状态未被修改
 	if engine.state.Symbol != "BTCUSDT" {
 		t.Errorf("Symbol被外部修改: expected=BTCUSDT, got=%s", engine.state.Symbol)
 	}
@@ -115,19 +115,19 @@ func TestGetState_DeepCopy_NilSafe(t *testing.T) {
 		EntryQtyTicks: 1000,
 		EventChSize:   100,
 	}
-    engine := NewEngine(cfg)
+	engine := NewEngine(cfg)
 
 	// 确保空的Levels和CLIDIndex也能正确深拷贝
 	engine.state.Levels = nil
 	engine.state.CLIDIndex = nil
 
-    ctx, cancel := context.WithCancel(context.Background())
-    defer cancel()
-    go func() { _ = engine.Run(ctx) }()
-    time.Sleep(50 * time.Millisecond)
-    getCtx, getCancel := context.WithTimeout(ctx, 500*time.Millisecond)
-    stateCopy, err := engine.GetState(getCtx)
-    getCancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() { _ = engine.Run(ctx) }()
+	time.Sleep(50 * time.Millisecond)
+	getCtx, getCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	stateCopy, err := engine.GetState(getCtx)
+	getCancel()
 	if err != nil {
 		t.Fatalf("GetState failed: %v", err)
 	}
@@ -168,24 +168,24 @@ func TestGetState_DeepCopy_MultipleCalls(t *testing.T) {
 		EntryQtyTicks: 1000,
 		EventChSize:   100,
 	}
-    engine := NewEngine(cfg)
+	engine := NewEngine(cfg)
 
 	engine.state.Market.LastPriceTicks = 50000000
 
-    ctx, cancel := context.WithCancel(context.Background())
-    defer cancel()
-    go func() { _ = engine.Run(ctx) }()
-    time.Sleep(50 * time.Millisecond)
-    // 获取两份拷贝
-    getCtx1, cancel1 := context.WithTimeout(ctx, 500*time.Millisecond)
-    copy1, err := engine.GetState(getCtx1)
-    cancel1()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() { _ = engine.Run(ctx) }()
+	time.Sleep(50 * time.Millisecond)
+	// 获取两份拷贝
+	getCtx1, cancel1 := context.WithTimeout(ctx, 500*time.Millisecond)
+	copy1, err := engine.GetState(getCtx1)
+	cancel1()
 	if err != nil {
 		t.Fatalf("GetState failed: %v", err)
 	}
-    getCtx2, cancel2 := context.WithTimeout(ctx, 500*time.Millisecond)
-    copy2, err := engine.GetState(getCtx2)
-    cancel2()
+	getCtx2, cancel2 := context.WithTimeout(ctx, 500*time.Millisecond)
+	copy2, err := engine.GetState(getCtx2)
+	cancel2()
 	if err != nil {
 		t.Fatalf("GetState failed: %v", err)
 	}
@@ -205,30 +205,30 @@ func TestGetState_DeepCopy_MultipleCalls(t *testing.T) {
 		t.Errorf("copy2被copy1影响: expected=22222222, got=%d", copy2.Market.LastPriceTicks)
 	}
 
-    engine.Stop()
-    time.Sleep(20 * time.Millisecond)
-    // 验证: Engine内部状态未被影响
+	engine.Stop()
+	time.Sleep(20 * time.Millisecond)
+	// 验证: Engine内部状态未被影响
 	if engine.state.Market.LastPriceTicks != 50000000 {
 		t.Errorf("Engine内部状态被影响: expected=50000000, got=%d", engine.state.Market.LastPriceTicks)
 	}
 }
 
 func TestGetState_ReturnsErrorWhenNotRunning(t *testing.T) {
-    cfg := EngineConfig{
-        Prefix:        "TEST",
-        Symbol:        "BTCUSDT",
-        Side:          model.GridSideLong,
-        StepTicks:     100000,
-        WinMinTicks:   49000000,
-        WinMaxTicks:   51000000,
-        EntryQtyTicks: 1000,
-        EventChSize:   100,
-    }
-    engine := NewEngine(cfg)
-    ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-    defer cancel()
-    _, err := engine.GetState(ctx)
-    if err == nil {
-        t.Fatal("expected error when engine not running")
-    }
+	cfg := EngineConfig{
+		Prefix:        "TEST",
+		Symbol:        "BTCUSDT",
+		Side:          model.GridSideLong,
+		StepTicks:     100000,
+		WinMinTicks:   49000000,
+		WinMaxTicks:   51000000,
+		EntryQtyTicks: 1000,
+		EventChSize:   100,
+	}
+	engine := NewEngine(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	_, err := engine.GetState(ctx)
+	if err == nil {
+		t.Fatal("expected error when engine not running")
+	}
 }

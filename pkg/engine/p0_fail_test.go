@@ -455,13 +455,13 @@ func TestEngineCtxLifecycle(t *testing.T) {
 	// 等待Engine启动
 	time.Sleep(50 * time.Millisecond)
 
-    // 验证：Engine.ctx已绑定
-    eng.mu.RLock()
-    boundCtx := eng.ctx
-    eng.mu.RUnlock()
-    if boundCtx != ctx {
-        t.Errorf("Expected Engine.ctx bound to Run ctx")
-    }
+	// 验证：Engine.ctx已绑定
+	eng.mu.RLock()
+	boundCtx := eng.ctx
+	eng.mu.RUnlock()
+	if boundCtx != ctx {
+		t.Errorf("Expected Engine.ctx bound to Run ctx")
+	}
 
 	// Cancel ctx
 	cancel()
@@ -519,13 +519,13 @@ func TestEngineReRunAfterStop(t *testing.T) {
 	}()
 	time.Sleep(50 * time.Millisecond)
 
-    // 验证：第二次Run能正常进入循环
-    eng.mu.RLock()
-    started := eng.started
-    eng.mu.RUnlock()
-    if !started {
-        t.Errorf("Expected Engine started after second Run")
-    }
+	// 验证：第二次Run能正常进入循环
+	eng.mu.RLock()
+	started := eng.started
+	eng.mu.RUnlock()
+	if !started {
+		t.Errorf("Expected Engine started after second Run")
+	}
 
 	// 清理
 	eng.Stop()
@@ -617,17 +617,17 @@ func TestTaskSubmitFailureMetrics(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond) // 等待处理
 
-    // 验证：metrics计数递增
-    metrics, mErr := eng.GetMetrics(ctx)
-    if mErr != nil {
-        t.Fatalf("GetMetrics failed: %v", mErr)
-    }
-    if metrics.TaskSubmitFailureCount == 0 {
-        t.Errorf("Expected TaskSubmitFailureCount > 0, got %d", metrics.TaskSubmitFailureCount)
-    }
-    if metrics.LastSubmitFailureAtMs == 0 {
-        t.Errorf("Expected LastSubmitFailureAtMs > 0, got %d", metrics.LastSubmitFailureAtMs)
-    }
+	// 验证：metrics计数递增
+	metrics, mErr := eng.GetMetrics(ctx)
+	if mErr != nil {
+		t.Fatalf("GetMetrics failed: %v", mErr)
+	}
+	if metrics.TaskSubmitFailureCount == 0 {
+		t.Errorf("Expected TaskSubmitFailureCount > 0, got %d", metrics.TaskSubmitFailureCount)
+	}
+	if metrics.LastSubmitFailureAtMs == 0 {
+		t.Errorf("Expected LastSubmitFailureAtMs > 0, got %d", metrics.LastSubmitFailureAtMs)
+	}
 
 	eng.Stop()
 	cancel()
