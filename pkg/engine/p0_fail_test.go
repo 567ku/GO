@@ -455,10 +455,13 @@ func TestEngineCtxLifecycle(t *testing.T) {
 	// 等待Engine启动
 	time.Sleep(50 * time.Millisecond)
 
-	// 验证：Engine.ctx已绑定
-	if eng.ctx != ctx {
-		t.Errorf("Expected Engine.ctx bound to Run ctx")
-	}
+    // 验证：Engine.ctx已绑定
+    eng.mu.RLock()
+    boundCtx := eng.ctx
+    eng.mu.RUnlock()
+    if boundCtx != ctx {
+        t.Errorf("Expected Engine.ctx bound to Run ctx")
+    }
 
 	// Cancel ctx
 	cancel()
@@ -516,10 +519,13 @@ func TestEngineReRunAfterStop(t *testing.T) {
 	}()
 	time.Sleep(50 * time.Millisecond)
 
-	// 验证：第二次Run能正常进入循环
-	if !eng.started {
-		t.Errorf("Expected Engine started after second Run")
-	}
+    // 验证：第二次Run能正常进入循环
+    eng.mu.RLock()
+    started := eng.started
+    eng.mu.RUnlock()
+    if !started {
+        t.Errorf("Expected Engine started after second Run")
+    }
 
 	// 清理
 	eng.Stop()
