@@ -56,7 +56,10 @@ func TestEngine_EventLoop(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	// 验证状态更新
-	state := engine.GetState()
+	state, err := engine.GetState(context.Background())
+	if err != nil {
+		t.Fatalf("GetState failed: %v", err)
+	}
 	if state.Market.LastPriceTicks != 50000000 {
 		t.Errorf("LastPriceTicks未更新: expected=50000000, got=%d", state.Market.LastPriceTicks)
 	}
@@ -268,7 +271,10 @@ func TestEngine_OrderUpdateMapping(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	// 验证OrderSlot更新
-	state := engine.GetState()
+	state, err := engine.GetState(context.Background())
+	if err != nil {
+		t.Fatalf("GetState failed: %v", err)
+	}
 	level := FindLevelByID(&state, 5)
 	if level == nil {
 		t.Fatal("应该找到levelID=5的level")

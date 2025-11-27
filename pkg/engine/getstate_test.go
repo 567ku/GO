@@ -3,6 +3,7 @@
 package engine
 
 import (
+	"context"
 	"gridbot/pkg/model"
 	"testing"
 )
@@ -41,7 +42,10 @@ func TestGetState_DeepCopy_ModifyDoesNotAffectInternal(t *testing.T) {
 	engine.state.Market.LastPriceTicks = 50000000
 
 	// 步骤1: 获取state快照
-	stateCopy := engine.GetState()
+	stateCopy, err := engine.GetState(context.Background())
+	if err != nil {
+		t.Fatalf("GetState failed: %v", err)
+	}
 
 	// 步骤2: 修改拷贝的基础字段
 	stateCopy.Symbol = "ETHUSDT" // 应该不影响原始state
@@ -109,7 +113,10 @@ func TestGetState_DeepCopy_NilSafe(t *testing.T) {
 	engine.state.Levels = nil
 	engine.state.CLIDIndex = nil
 
-	stateCopy := engine.GetState()
+	stateCopy, err := engine.GetState(context.Background())
+	if err != nil {
+		t.Fatalf("GetState failed: %v", err)
+	}
 
 	// 验证: 拷贝后不是nil（应该初始化为空切片/map）
 	if stateCopy.Levels != nil {
@@ -152,8 +159,14 @@ func TestGetState_DeepCopy_MultipleCalls(t *testing.T) {
 	engine.state.Market.LastPriceTicks = 50000000
 
 	// 获取两份拷贝
-	copy1 := engine.GetState()
-	copy2 := engine.GetState()
+	copy1, err := engine.GetState(context.Background())
+	if err != nil {
+		t.Fatalf("GetState failed: %v", err)
+	}
+	copy2, err := engine.GetState(context.Background())
+	if err != nil {
+		t.Fatalf("GetState failed: %v", err)
+	}
 
 	// 修改copy1
 	copy1.Market.LastPriceTicks = 11111111

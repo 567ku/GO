@@ -300,6 +300,9 @@ func (e *Engine) dispatch(ev model.EngineEvent) {
 		e.handleTimer(ev.Data.(model.TimerEvent))
 	case model.EventTypeExecutorResult:
 		e.handleExecutorResult(ev.Data.(model.ExecutorResultEvent))
+	case model.EventTypeStateRequest:
+		// P0-RACE-02: 处理状态快照请求
+		e.handleStateRequest(ev.Data.(model.StateRequestEvent))
 	default:
 		// 未知事件类型，忽略
 	}
@@ -323,14 +326,39 @@ func (e *Engine) GetEventCh() chan<- model.EngineEvent {
 }
 
 // GetState 获取状态快照（只读）
+// P0-RACE-02: 改为事件请求模式，避免读写竞态
 // 注意：返回的是副本，不能修改
-// GetState 获取状态快照（Stage 5C: 深拷贝防止外部误写）
-func (e *Engine) GetState() model.GridStateSnapshot {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
+func (e *Engine) GetState(ctx context.Context) (model.GridStateSnapshot, error) {
+	// 验收红1: GetState必须可超时、可退出
+	replyCh := make(chan *model.GridStateSnapshot, 1) // buffer=1，避免阻塞engine loop
 
-	// 返回深拷贝，防止外部修改影响Engine内部状态
-	return *e.state.DeepCopy()
+	// 发送状态请求事件到engine loop
+	select {
+	case e.eventCh <- model.EngineEvent{
+		Type: model.EventTypeStateRequest,
+		Data: model.StateRequestEvent{
+			ReplyCh: replyCh,
+		},
+	}:
+		// 请求已发送，等待回复
+	case <-ctx.Done():
+		return model.GridStateSnapshot{}, ctx.Err()
+	case <-e.stopCh:
+		return model.GridStateSnapshot{}, fmt.Errorf("engine stopped")
+	}
+
+	// 等待engine loop回复
+	select {
+	case snapshot := <-replyCh:
+		if snapshot == nil {
+			return model.GridStateSnapshot{}, fmt.Errorf("engine returned nil snapshot")
+		}
+		return *snapshot, nil
+	case <-ctx.Done():
+		return model.GridStateSnapshot{}, ctx.Err()
+	case <-e.stopCh:
+		return model.GridStateSnapshot{}, fmt.Errorf("engine stopped")
+	}
 }
 
 // ========== P0-E-02: 状态机（写操作闸门） ==========
@@ -541,6 +569,20 @@ func (e *Engine) handleExecutorResult(ev model.ExecutorResultEvent) {
 	// P0-RET-04/05 已完成：
 	// - 错误码分类（classifyErrorCode）在ApplyExecutorResult中实现
 	// - Lease回收（ApplyLeaseScanResult）在handleTimer中实现
+}
+
+// handleStateRequest 处理状态快照请求（P0-RACE-02）
+func (e *Engine) handleStateRequest(ev model.StateRequestEvent) {
+	// 验收红2: DeepCopy必须真拷贝 map/slice
+	snapshot := e.state.DeepCopy()
+
+	// 验收红2: reply channel buffer=1，不会阻塞主循环
+	select {
+	case ev.ReplyCh <- snapshot:
+		// 成功发送
+	default:
+		// channel已关闭或者请求方已放弃，忽略
+	}
 }
 
 // ========== Stage 4A: Snapshot/WAL + 崩溃恢复 ==========

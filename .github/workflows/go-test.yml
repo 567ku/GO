@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main, dev ]
 
+env:
+  GOTOOLCHAIN: local  # P0: 禁止toolchain自动升级，强制使用workflow指定版本
+
 jobs:
   test:
     name: Test with Race Detector
@@ -13,7 +16,7 @@ jobs:
     
     strategy:
       matrix:
-        go-version: ['1.21', '1.22']
+        go-version: ['1.22.0']  # P0: 固定版本，与go.mod保持一致
     
     steps:
     - name: Checkout code
@@ -23,7 +26,25 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
+        check-latest: false  # P0: 禁止自动升级
         cache: true
+    
+    - name: Verify Go version
+      run: |
+        echo "=== Go Version Verification ==="
+        go version
+        go env GOTOOLCHAIN
+        echo "=== Checking go.mod ==="
+        cat go.mod | grep "^go " || true
+        echo "=== Version Check ==="
+        GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
+        echo "Actual Go version: $GO_VERSION"
+        echo "Expected Go version: ${{ matrix.go-version }}"
+        if [[ ! "$GO_VERSION" =~ ^${{ matrix.go-version }} ]]; then
+          echo "ERROR: Go version mismatch!"
+          exit 1
+        fi
+        echo "\u2705 Version verification passed"
     
     - name: Install dependencies
       run: |
@@ -48,6 +69,11 @@ jobs:
       run: |
         echo "Running tests with race detector..."
         go test -race -v -count=1 ./pkg/...
+    
+    - name: Run Reconnect stress test
+      run: |
+        echo "Running Reconnect stress test (count=50)..."
+        go test ./pkg/engine -run "TestEngine_ReconnectToReconciling|TestReconcile_Reconnected" -count=50
     
     - name: Run go vet
       run: |

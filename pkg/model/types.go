@@ -317,6 +317,7 @@ const (
 	EventTypeWSState
 	EventTypeTimer
 	EventTypeExecutorResult
+	EventTypeStateRequest // 状态快照请求事件
 )
 
 // PriceTickEvent 价格tick事件
@@ -404,6 +405,11 @@ type ExecutorResultEvent struct {
 	AtMs           int64              `json:"atMs"`
 	ExchangeTimeMs int64              `json:"exchangeTimeMs"` // 交易所时间（强烈建议）
 	ParsedOrder    *ParsedOrderUpdate `json:"parsedOrder"`    // 可选
+}
+
+// StateRequestEvent 状态快照请求事件（用于GetState）
+type StateRequestEvent struct {
+	ReplyCh chan<- *GridStateSnapshot // reply channel，buffer=1，避免阻塞engine loop
 }
 
 // ParsedOrderUpdate 解析后的订单更新

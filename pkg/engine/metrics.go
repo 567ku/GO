@@ -3,6 +3,7 @@
 package engine
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"gridbot/pkg/model"
@@ -48,9 +49,13 @@ type EngineMetrics struct {
 }
 
 // GetMetrics 获取当前运维指标（Stage 5D）
-func (e *Engine) GetMetrics() *EngineMetrics {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
+// P0-RACE-02: 改为基于快照，避免直接访问e.state
+func (e *Engine) GetMetrics(ctx context.Context) (*EngineMetrics, error) {
+	// 验收红3: 任何 goroutine 直接 e.state.xxx 都算违规
+	snapshot, err := e.GetState(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	metrics := &EngineMetrics{
 		EventBacklog:           int64(len(e.eventCh)),
@@ -63,13 +68,13 @@ func (e *Engine) GetMetrics() *EngineMetrics {
 		LastReconcileAtMs:      atomic.LoadInt64(&e.lastReconcileAtMs),
 		TaskSubmitFailureCount: atomic.LoadInt64(&e.taskSubmitFailureCount), // P1-D
 		LastSubmitFailureAtMs:  atomic.LoadInt64(&e.lastSubmitFailureAtMs),  // P1-D
-		CurrentMode:            string(e.mode),
-		LevelCount:             int64(len(e.state.Levels)),
+		CurrentMode:            string(e.GetMode()),
+		LevelCount:             int64(len(snapshot.Levels)),
 	}
 
 	// 计算任务飞行中数量（SUBMITTED状态的订单）
 	inflightCount := int64(0)
-	for _, level := range e.state.Levels {
+	for _, level := range snapshot.Levels {
 		if level.Entry.State == model.OrderStateSubmitted {
 			inflightCount++
 		}
@@ -95,7 +100,7 @@ func (e *Engine) GetMetrics() *EngineMetrics {
 		metrics.EventsPerSecond = 1000 / elapsed
 	}
 
-	return metrics
+	return metrics, nil
 }
 
 // UpdateWSHealth 更新WS健康状态（Stage 5D）
@@ -157,7 +162,14 @@ func (e *Engine) RecordTaskSubmitFailure(taskType model.TaskType, taskID string,
 
 // LogMetricsSummary 输出结构化日志summary（JSON Lines格式）
 func (e *Engine) LogMetricsSummary() {
-	metrics := e.GetMetrics()
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	metrics, err := e.GetMetrics(ctx)
+	if err != nil {
+		fmt.Printf("{\"level\":\"ERROR\",\"msg\":\"get metrics failed\",\"error\":\"%s\"}\n", err.Error())
+		return
+	}
 
 	// JSON序列化
 	jsonBytes, err := json.Marshal(metrics)

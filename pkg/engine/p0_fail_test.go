@@ -611,14 +611,17 @@ func TestTaskSubmitFailureMetrics(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond) // 等待处理
 
-	// 验证：metrics计数递增
-	metrics := eng.GetMetrics()
-	if metrics.TaskSubmitFailureCount == 0 {
-		t.Errorf("Expected TaskSubmitFailureCount > 0, got %d", metrics.TaskSubmitFailureCount)
-	}
-	if metrics.LastSubmitFailureAtMs == 0 {
-		t.Errorf("Expected LastSubmitFailureAtMs > 0, got %d", metrics.LastSubmitFailureAtMs)
-	}
+    // 验证：metrics计数递增
+    metrics, mErr := eng.GetMetrics(ctx)
+    if mErr != nil {
+        t.Fatalf("GetMetrics failed: %v", mErr)
+    }
+    if metrics.TaskSubmitFailureCount == 0 {
+        t.Errorf("Expected TaskSubmitFailureCount > 0, got %d", metrics.TaskSubmitFailureCount)
+    }
+    if metrics.LastSubmitFailureAtMs == 0 {
+        t.Errorf("Expected LastSubmitFailureAtMs > 0, got %d", metrics.LastSubmitFailureAtMs)
+    }
 
 	eng.Stop()
 	cancel()
