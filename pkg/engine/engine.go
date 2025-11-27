@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+var ErrEngineNotRunning = fmt.Errorf("engine not running")
+
 // Engine 网格交易引擎（单写者）
 // 职责：
 // 1. 单写者事件循环：所有状态修改只在Engine goroutine中发生
@@ -329,6 +331,12 @@ func (e *Engine) GetEventCh() chan<- model.EngineEvent {
 // P0-RACE-02: 改为事件请求模式，避免读写竞态
 // 注意：返回的是副本，不能修改
 func (e *Engine) GetState(ctx context.Context) (model.GridStateSnapshot, error) {
+	e.mu.RLock()
+	running := e.started
+	e.mu.RUnlock()
+	if !running {
+		return model.GridStateSnapshot{}, ErrEngineNotRunning
+	}
 	// 验收红1: GetState必须可超时、可退出
 	replyCh := make(chan *model.GridStateSnapshot, 1) // buffer=1，避免阻塞engine loop
 
